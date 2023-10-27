@@ -1,15 +1,37 @@
-Source: template-repository
-Section: unknown
+Source: sphinx-design
+Maintainer: Gianfranco Costamagna <locutusofborg@debian.org>
+Section: python
 Priority: optional
-Maintainer: Tsic404 <liuheng@deepin.org>
-Build-Depends: debhelper (>= 11)
-Standards-Version: 4.1.3
-Homepage: https://github.com/deepin-community/template-repository
-#Vcs-Browser: https://salsa.debian.org/debian/deepin-community-template-repository
-#Vcs-Git: https://salsa.debian.org/debian/deepin-community-template-repository.git
+Build-Depends: debhelper-compat (= 13),
+               dh-python,
+               flit,
+               furo,
+               pybuild-plugin-pyproject,
+               python3-all,
+               python3-myst-parser,
+               python3-pydata-sphinx-theme,
+               python3-pytest,
+               python3-pytest-cov,
+               python3-pytest-regressions,
+               python3-sphinx-book-theme,
+               python3-sphinx-rtd-theme,
+               python3-setuptools,
+Standards-Version: 4.6.2
+Homepage: https://github.com/executablebooks/sphinx-design
 
-Package: template-repository
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: <insert up to 60 chars description>
- <insert long description, indented with spaces>
+Package: python3-sphinx-design
+Architecture: all
+Depends: ${misc:Depends},
+         ${python3:Depends},
+Description: A sphinx extension for designing beautiful, view size responsive web components.
+ Created with inspiration from Bootstrap (v5), Material Design and Material-UI
+ design frameworks.
+ .
+ Supported browsers
+ .
+   Chrome >= 60
+   Firefox >= 60
+   Firefox ESR
+   iOS >= 12
+   Safari >= 12
+   Explorer >= 12
