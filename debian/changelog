@@ -1,3 +1,32 @@
+sphinx-design (0.6.1-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Mon, 05 Aug 2024 10:43:55 +0200
+
+sphinx-design (0.6.0-2) unstable; urgency=medium
+
+  * Bump copyright years
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Mon, 27 May 2024 23:40:32 +0200
+
+sphinx-design (0.6.0-1) unstable; urgency=medium
+
+  * New upstream release.
+    - drop upstream patches
+  * Bump std-version to 4.7.0
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Mon, 27 May 2024 23:31:28 +0200
+
+sphinx-design (0.5.0-2) unstable; urgency=medium
+
+  * debian/patches/c7a2ca91456787a65f87ef5ee7020d9582ad4205.patch:
+  * debian/patches/fa9e3cc5d162fdf3a138bb166992813ea608b2c0.patch:
+    - cherry-pick two upstream patches for js and sphinx build fixes.
+      (Closes: #1057607
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Fri, 12 Jan 2024 17:38:59 +0100
+
 sphinx-design (0.5.0-1) unstable; urgency=medium
 
   * New upstream release.
