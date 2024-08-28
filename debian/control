@@ -16,7 +16,7 @@ Build-Depends: debhelper-compat (= 13),
                python3-sphinx-book-theme,
                python3-sphinx-rtd-theme,
                python3-setuptools,
-Standards-Version: 4.6.2
+Standards-Version: 4.7.0
 Homepage: https://github.com/executablebooks/sphinx-design
 
 Package: python3-sphinx-design

@@ -1,10 +1,18 @@
 """Test the documented snippets run correctly, and are the same for both RST and MyST."""
+
 from pathlib import Path
 from typing import Callable
 
 import pytest
 
 from .conftest import SphinxBuilder
+
+try:
+    import myst_parser  # noqa: F401
+
+    MYST_INSTALLED = True
+except ImportError:
+    MYST_INSTALLED = False
 
 SNIPPETS_PATH = Path(__file__).parent.parent / "docs" / "snippets"
 SNIPPETS_GLOB_RST = list((SNIPPETS_PATH / "rst").glob("[!_]*"))
@@ -28,7 +36,7 @@ def test_snippets_rst(
     sphinx_builder: Callable[..., SphinxBuilder], path: Path, file_regression
 ):
     """Test snippets written in RestructuredText (before post-transforms)."""
-    builder = sphinx_builder()
+    builder = sphinx_builder(conf_kwargs={"extensions": ["sphinx_design"]})
     content = "Heading\n-------" + "\n\n" + path.read_text(encoding="utf8")
     builder.src_path.joinpath("index.rst").write_text(content, encoding="utf8")
     write_assets(builder.src_path)
@@ -48,6 +56,7 @@ def test_snippets_rst(
     SNIPPETS_GLOB_MYST,
     ids=[path.name[: -len(path.suffix)] for path in SNIPPETS_GLOB_MYST],
 )
+@pytest.mark.skipif(not MYST_INSTALLED, reason="myst-parser not installed")
 def test_snippets_myst(
     sphinx_builder: Callable[..., SphinxBuilder], path: Path, file_regression
 ):
@@ -76,7 +85,7 @@ def test_snippets_rst_post(
     sphinx_builder: Callable[..., SphinxBuilder], path: Path, file_regression
 ):
     """Test snippets written in RestructuredText (after HTML post-transforms)."""
-    builder = sphinx_builder()
+    builder = sphinx_builder(conf_kwargs={"extensions": ["sphinx_design"]})
     content = "Heading\n-------" + "\n\n" + path.read_text(encoding="utf8")
     builder.src_path.joinpath("index.rst").write_text(content, encoding="utf8")
     write_assets(builder.src_path)
@@ -96,6 +105,7 @@ def test_snippets_rst_post(
     SNIPPETS_GLOB_MYST,
     ids=[path.name[: -len(path.suffix)] for path in SNIPPETS_GLOB_MYST],
 )
+@pytest.mark.skipif(not MYST_INSTALLED, reason="myst-parser not installed")
 def test_snippets_myst_post(
     sphinx_builder: Callable[..., SphinxBuilder], path: Path, file_regression
 ):
@@ -119,7 +129,7 @@ def test_sd_hide_title_rst(
     sphinx_builder: Callable[..., SphinxBuilder], file_regression
 ):
     """Test that the root title is hidden."""
-    builder = sphinx_builder()
+    builder = sphinx_builder(conf_kwargs={"extensions": ["sphinx_design"]})
     content = ":sd_hide_title:\n\nHeading\n-------\n\ncontent"
     builder.src_path.joinpath("index.rst").write_text(content, encoding="utf8")
     builder.build()
@@ -133,6 +143,7 @@ def test_sd_hide_title_rst(
     )
 
 
+@pytest.mark.skipif(not MYST_INSTALLED, reason="myst-parser not installed")
 def test_sd_hide_title_myst(
     sphinx_builder: Callable[..., SphinxBuilder], file_regression
 ):
@@ -146,6 +157,39 @@ def test_sd_hide_title_myst(
     file_regression.check(
         doctree.pformat(),
         basename="sd_hide_title",
+        extension=".xml",
+        encoding="utf8",
+    )
+
+
+@pytest.mark.skipif(not MYST_INSTALLED, reason="myst-parser not installed")
+def test_sd_custom_directives(
+    sphinx_builder: Callable[..., SphinxBuilder], file_regression
+):
+    """Test that the defaults are used."""
+    builder = sphinx_builder(
+        conf_kwargs={
+            "extensions": ["myst_parser", "sphinx_design"],
+            "sd_custom_directives": {
+                "dropdown-syntax": {
+                    "inherit": "dropdown",
+                    "argument": "Syntax",
+                    "options": {
+                        "color": "primary",
+                        "icon": "code",
+                    },
+                }
+            },
+        }
+    )
+    content = "# Heading\n\n```{dropdown-syntax}\ncontent\n```"
+    builder.src_path.joinpath("index.md").write_text(content, encoding="utf8")
+    builder.build()
+    doctree = builder.get_doctree("index", post_transforms=False)
+    doctree.attributes.pop("translation_progress", None)  # added in sphinx 7.1
+    file_regression.check(
+        doctree.pformat(),
+        basename="sd_custom_directives",
         extension=".xml",
         encoding="utf8",
     )

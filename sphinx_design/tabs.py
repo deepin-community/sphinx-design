@@ -1,14 +1,11 @@
-from typing import List
-
 from docutils import nodes
 from docutils.parsers.rst import directives
 from sphinx.application import Sphinx
 from sphinx.transforms.post_transforms import SphinxPostTransform
-from sphinx.util.docutils import SphinxDirective
 from sphinx.util.logging import getLogger
 
 from ._compat import findall
-from .shared import WARNING_TYPE, create_component, is_component
+from .shared import WARNING_TYPE, SdDirective, create_component, is_component
 
 LOGGER = getLogger(__name__)
 
@@ -22,19 +19,19 @@ def setup_tabs(app: Sphinx) -> None:
     app.add_node(sd_tab_label, html=(visit_tab_label, depart_tab_label))
 
 
-class TabSetDirective(SphinxDirective):
+class TabSetDirective(SdDirective):
     """A container for a set of tab items."""
 
     has_content = True
     option_spec = {
+        "sync-group": directives.unchanged_required,
         "class": directives.class_option,
     }
 
-    def run(self) -> List[nodes.Node]:
-        """Run the directive."""
+    def run_with_defaults(self) -> list[nodes.Node]:
         self.assert_has_content()
         tab_set = create_component(
-            "tab-set", classes=["sd-tab-set"] + self.options.get("class", [])
+            "tab-set", classes=["sd-tab-set", *self.options.get("class", [])]
         )
         self.set_source_info(tab_set)
         self.state.nested_parse(self.content, self.content_offset, tab_set)
@@ -48,10 +45,12 @@ class TabSetDirective(SphinxDirective):
                     subtype="tab",
                 )
                 break
+            if "sync_id" in item.children[0]:
+                item.children[0]["sync_group"] = self.options.get("sync-group", "tab")
         return [tab_set]
 
 
-class TabItemDirective(SphinxDirective):
+class TabItemDirective(SdDirective):
     """A single tab item in a tab set.
 
     Note: This directive generates a single container,
@@ -81,8 +80,7 @@ class TabItemDirective(SphinxDirective):
         "class-content": directives.class_option,
     }
 
-    def run(self) -> List[nodes.Node]:
-        """Run the directive."""
+    def run_with_defaults(self) -> list[nodes.Node]:
         self.assert_has_content()
         if not is_component(self.state_machine.node, "tab-set"):
             LOGGER.warning(
@@ -93,7 +91,7 @@ class TabItemDirective(SphinxDirective):
             )
         tab_item = create_component(
             "tab-item",
-            classes=["sd-tab-item"] + self.options.get("class-container", []),
+            classes=["sd-tab-item", *self.options.get("class-container", [])],
             selected=("selected" in self.options),
         )
 
@@ -101,8 +99,9 @@ class TabItemDirective(SphinxDirective):
         textnodes, _ = self.state.inline_text(self.arguments[0], self.lineno)
         tab_label = nodes.rubric(
             self.arguments[0],
+            "",
             *textnodes,
-            classes=["sd-tab-label"] + self.options.get("class-label", []),
+            classes=["sd-tab-label", *self.options.get("class-label", [])],
         )
         if "sync" in self.options:
             tab_label["sync_id"] = self.options["sync"]
@@ -112,7 +111,7 @@ class TabItemDirective(SphinxDirective):
         # add tab content
         tab_content = create_component(
             "tab-content",
-            classes=["sd-tab-content"] + self.options.get("class-content", []),
+            classes=["sd-tab-content", *self.options.get("class-content", [])],
         )
         self.state.nested_parse(self.content, self.content_offset, tab_content)
         tab_item += tab_content
@@ -120,21 +119,21 @@ class TabItemDirective(SphinxDirective):
         return [tab_item]
 
 
-class TabSetCodeDirective(SphinxDirective):
+class TabSetCodeDirective(SdDirective):
     """A container for a set of tab items, generated from code blocks."""
 
     has_content = True
     option_spec = {
         "no-sync": directives.flag,
+        "sync-group": directives.unchanged_required,
         "class-set": directives.class_option,
         "class-item": directives.class_option,
     }
 
-    def run(self) -> List[nodes.Node]:
-        """Run the directive."""
+    def run_with_defaults(self) -> list[nodes.Node]:
         self.assert_has_content()
         tab_set = create_component(
-            "tab-set", classes=["sd-tab-set"] + self.options.get("class-set", [])
+            "tab-set", classes=["sd-tab-set", *self.options.get("class-set", [])]
         )
         self.set_source_info(tab_set)
         self.state.nested_parse(self.content, self.content_offset, tab_set)
@@ -153,30 +152,31 @@ class TabSetCodeDirective(SphinxDirective):
             tab_label = nodes.rubric(
                 language.upper(),
                 nodes.Text(language.upper()),
-                classes=["sd-tab-label"] + self.options.get("class-label", []),
+                classes=["sd-tab-label", *self.options.get("class-label", [])],
             )
             if "no-sync" not in self.options:
-                tab_label["sync_id"] = f"tabcode-{language}"
+                tab_label["sync_group"] = self.options.get("sync-group", "code")
+                tab_label["sync_id"] = language
             tab_content = create_component(
                 "tab-content",
                 children=[item],
-                classes=["sd-tab-content"] + self.options.get("class-content", []),
+                classes=["sd-tab-content", *self.options.get("class-content", [])],
             )
             tab_item = create_component(
                 "tab-item",
                 children=[tab_label, tab_content],
-                classes=["sd-tab-item"] + self.options.get("class-item", []),
+                classes=["sd-tab-item", *self.options.get("class-item", [])],
             )
             new_children.append(tab_item)
         tab_set.children = new_children
         return [tab_set]
 
 
-class sd_tab_input(nodes.Element, nodes.General):
+class sd_tab_input(nodes.Element, nodes.General):  # noqa: N801
     pass
 
 
-class sd_tab_label(nodes.TextElement, nodes.General):
+class sd_tab_label(nodes.TextElement, nodes.General):  # noqa: N801
     pass
 
 
@@ -188,13 +188,16 @@ def visit_tab_input(self, node):
 
 
 def depart_tab_input(self, node):
-    self.body.append("</input>")
+    # note do not add a closing tag, since this is a void element:
+    # https://developer.mozilla.org/en-US/docs/Glossary/Void_element
+    pass
 
 
 def visit_tab_label(self, node):
     attributes = {"for": node["input_id"]}
-    if "sync_id" in node:
+    if "sync_id" in node and "sync_group" in node:
         attributes["data-sync-id"] = node["sync_id"]
+        attributes["data-sync-group"] = node["sync_group"]
     self.body.append(self.starttag(node, "label", **attributes))
 
 
@@ -213,15 +216,13 @@ class TabSetHtmlTransform(SphinxPostTransform):
 
         # setup id generators
         tab_set_id_base = "sd-tab-set-"
-        tab_set_id_num = 0
         tab_item_id_base = "sd-tab-item-"
         tab_item_id_num = 0
 
-        for tab_set in findall(self.document)(
-            lambda node: is_component(node, "tab-set")
+        for tab_set_id_num, tab_set in enumerate(
+            findall(self.document)(lambda node: is_component(node, "tab-set"))
         ):
             tab_set_identity = tab_set_id_base + str(tab_set_id_num)
-            tab_set_id_num += 1
             children = []
             # get the first selected node
             selected_idx = None
@@ -242,7 +243,6 @@ class TabSetHtmlTransform(SphinxPostTransform):
                 try:
                     tab_label, tab_content = tab_item.children
                 except ValueError:
-                    print(tab_item)
                     raise
                 tab_item_identity = tab_item_id_base + str(tab_item_id_num)
                 tab_item_id_num += 1
@@ -261,13 +261,15 @@ class TabSetHtmlTransform(SphinxPostTransform):
                 # create: <label for="id">...</label>
                 label_node = sd_tab_label(
                     "",
+                    "",
                     *tab_label.children,
                     input_id=tab_item_identity,
                     classes=tab_label["classes"],
                 )
                 if tab_label.get("ids"):
                     label_node["ids"] += tab_label["ids"]
-                if "sync_id" in tab_label:
+                if "sync_group" in tab_label and "sync_id" in tab_label:
+                    label_node["sync_group"] = tab_label["sync_group"]
                     label_node["sync_id"] = tab_label["sync_id"]
                 label_node.source, label_node.line = tab_item.source, tab_item.line
                 children.append(label_node)

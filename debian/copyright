@@ -16,7 +16,7 @@ Copyright: 2011-2019 The Bootstrap Authors
 License: MIT
 
 Files: sphinx_design/compiled/octicon*
-Copyright: 2021 GitHub Inc.
+Copyright: 2021-2024 GitHub Inc.
 License: MIT
 
 Files: sphix_design/compiled/material*
@@ -24,7 +24,7 @@ Copyright: 2022 Google
 License: Apache-2.0
 
 Files: debian/*
-Copyright: 2023, Gianfranco Costamagna <locutusofborg@debian.org>
+Copyright: 2023-2024, Gianfranco Costamagna <locutusofborg@debian.org>
 License: MIT
 
 License: MIT
